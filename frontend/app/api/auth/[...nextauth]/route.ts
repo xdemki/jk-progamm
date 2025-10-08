@@ -3,56 +3,41 @@ import CredentialsProvider from "next-auth/providers/credentials";
 import { io } from "socket.io-client";
 
 export const authOptions = {
+  secret: process.env.NEXTAUTH_SECRET,
   providers: [
     CredentialsProvider({
       name: "Credentials",
       credentials: {
-        username: { label: "Username", type: "text" },
+        username: { label: "Username", type: "text", placeholder: "jsmith" },
         password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
-        return new Promise((resolve, reject) => {
-          const socket = io("http://localhost:4000"!, {
-            transports: ["websocket"],
+        return new Promise(async(resolve) => {
+          const request = await fetch("http://localhost:4000/api/login", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(credentials),
           });
 
-          socket.on("connect", () => {
-            socket.emit("login", {
-              username: credentials?.username,
-              password: credentials?.password,
-            });
-          });
+          const response = await request.json();
 
-          socket.on("loginResponse", (data) => {
-            socket.disconnect();
-
-            if (data.success) {
-              // Erfolg → gib Userdaten zurück
-              resolve(data.user);
-            } else {
-              // Fehler → Login abgelehnt
-              reject(new Error(data.error || "Invalid credentials"));
-            }
-          });
-
-          socket.on("connect_error", (err) => {
-            reject(new Error("Socket connection failed: " + err.message));
-          });
+          if (response.success) {
+            // login worked
+            // user = response.body
+            resolve({ id: response.body.userId, name: response.body.username, email: response.body.email });
+          } else {
+            // login failed - handle notifications client-side in the frontend
+            resolve(null);
+          }
         });
       },
     }),
   ],
-  session: { strategy: "jwt" },
-  secret: 'Secret',
-  callbacks: {
-    async jwt({ token, user }) {
-      if (user) token.user = user;
-      return token;
-    },
-    async session({ session, token }) {
-      session.user = token.user as any;
-      return session;
-    },
+  session: {
+    strategy: "jwt",
+  },
+  pages: {
+    signIn: "/auth/signin",
   },
 };
 

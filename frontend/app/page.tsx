@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { useSession, signIn, signOut } from "next-auth/react";
-import { Button, Checkbox, Form, Input, message } from "antd";
+import { Button, Checkbox, Form, Input, notification } from "antd";
+import Home from "@/components/Home/Home";
 
 type FieldType = {
   username?: string;
@@ -13,35 +14,45 @@ type FieldType = {
 export default function LoginPage() {
   const { data: session } = useSession();
   const [loading, setLoading] = useState(false);
+  const [api, contextHolder] = notification.useNotification(); // ✅ create instance
 
-  const onFinish = async (values: FieldType) => {
+  const onFinish = async (values: any) => {
     setLoading(true);
-    const res = await signIn("credentials", {
+    const result = await signIn("credentials", {
+      redirect: false,
       username: values.username,
       password: values.password,
-      redirect: false,
     });
-
-    if (res?.ok) {
-      message.success("Login erfolgreich!");
-    } else {
-      message.error("Login fehlgeschlagen.");
-    }
     setLoading(false);
+
+    if (result?.error) {
+      api.error({
+        message: "Login fehlgeschlagen",
+        description: "Ungültige Anmeldedaten. Bitte erneut versuchen.",
+        placement: "topRight",
+      });
+    } else if (result?.ok && !result.error) {
+      api.success({
+        message: "Login erfolgreich",
+        description: "Willkommen zurück!",
+        placement: "topRight",
+      });
+    }
   };
 
   if (session) {
     return (
       <div className="p-4">
-        <p>Angemeldet als {session.user?.username}</p>
-        <Button onClick={() => signOut()}>Logout</Button>
+        {contextHolder} {/* ✅ important: render notification context */}
+        <Home />
       </div>
     );
   }
 
   return (
     <div className="p-4">
-      <Form
+      {contextHolder} {/* ✅ important: render notification context */}
+      <Form<FieldType>
         name="login"
         labelCol={{ span: 8 }}
         wrapperCol={{ span: 16 }}
@@ -49,7 +60,7 @@ export default function LoginPage() {
         onFinish={onFinish}
         autoComplete="off"
       >
-        <Form.Item<FieldType>
+        <Form.Item
           label="Username"
           name="username"
           rules={[{ required: true, message: "Bitte Benutzernamen eingeben!" }]}
@@ -57,7 +68,7 @@ export default function LoginPage() {
           <Input />
         </Form.Item>
 
-        <Form.Item<FieldType>
+        <Form.Item
           label="Passwort"
           name="password"
           rules={[{ required: true, message: "Bitte Passwort eingeben!" }]}
@@ -65,7 +76,7 @@ export default function LoginPage() {
           <Input.Password />
         </Form.Item>
 
-        <Form.Item<FieldType> name="remember" valuePropName="checked" label={null}>
+        <Form.Item name="remember" valuePropName="checked" label={null}>
           <Checkbox>Angemeldet bleiben</Checkbox>
         </Form.Item>
 

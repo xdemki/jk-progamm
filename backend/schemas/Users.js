@@ -1,7 +1,7 @@
 const { default: mongoose } = require("mongoose");
 
 module.exports = mongoose.model('Users', new mongoose.Schema({
-    id: {
+    userId: {
         type: String,
         required: true,
         unique: true
