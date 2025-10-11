@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useSession, signIn, signOut } from "next-auth/react";
-import { Button, Checkbox, Form, Input, notification } from "antd";
+import { Button, Checkbox, Form, Input, notification, Spin } from "antd";
 import Home from "@/components/Home/Home";
 
 type FieldType = {
@@ -47,6 +47,12 @@ export default function LoginPage() {
         <Home />
       </div>
     );
+  }
+
+  if(loading) {
+    return (
+      <Spin />
+    )
   }
 
   return (
